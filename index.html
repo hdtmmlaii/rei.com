@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>JSON Output</title>
+</head>
+<body>
+    <pre id="jsonOutput"></pre>
+    
+    <script>
+        // Danh sách user hợp lệ và thông tin tương ứng (dạng txt đơn giản)
+        // Format: username:password:firstname:lastname
+        const userData = `
+chaoyantime@gmail.com:pinkavenger1:Timothy 
+cocailoinnhamy@gmail.com:%g45PhtMu*NY@@HDT##: ammonium
+upe83533@laoia.com:99ZP25231M23762697: ammoni
+bletwin888@gmail.com:12345678As:hhhamm
+        `.trim().split('\n').map(line => {
+            const parts = line.split(':');
+            return {
+                username: parts[0],
+                password: parts[1],
+                firstName: parts[2],
+                lastName: parts[3]
+            };
+        });
+        
+        // Danh sách username hợp lệ
+        const validUsers = userData.map(user => user.username);
+        
+        // Lấy URL hiện tại
+        const url = window.location.href;
+        
+        // Tìm vị trí của "user=" và "password=" trong URL
+        const userIndex = url.indexOf("user=");
+        const passwordIndex = url.indexOf("password=");
+        
+        let user = "";
+        let password = "";
+        let isValidUser = false;
+        let message = "";
+        let userInfo = null;
+        
+        // Trích xuất user
+        if (userIndex !== -1) {
+            const userSubstring = url.substring(userIndex + 5);
+            
+            if (passwordIndex > userIndex) {
+                const passwordStart = url.indexOf("password=", userIndex);
+                if (passwordStart !== -1) {
+                    user = url.substring(userIndex + 5, passwordStart - 1);
+                }
+            } else {
+                user = userSubstring;
+            }
+            
+            // Kiểm tra user có hợp lệ không
+            isValidUser = validUsers.includes(user);
+            
+            // Tìm thông tin user
+            if (isValidUser) {
+                userInfo = userData.find(u => u.username === user);
+            }
+            
+            // Tạo thông báo
+            if (!user) {
+                message = "ErrorHmm, the information you entered doesn’t match our records.";
+            } else if (!isValidUser) {
+                message = "ErrorHmm, the information you entered doesn’t match our records.";
+            }
+        } else {
+            message = "ErrorHmm, the information you entered doesn’t match our records.";
+        }
+        
+        // Trích xuất password
+        if (passwordIndex !== -1) {
+            const passwordSubstring = url.substring(passwordIndex + 9);
+            password = passwordSubstring;
+        }
+        
+        if (!password && !message) {
+            message = "ErrorHmm, the information you entered doesn’t match our records.";
+        }
+        
+        // Kiểm tra password nếu user hợp lệ
+        if (isValidUser && userInfo && password !== userInfo.password) {
+            isValidUser = false;
+            message = "ErrorHmm, the information you entered doesn’t match our records.";
+        }
+        
+        // Hàm tạo ID ngẫu nhiên (24 ký tự hex) - RANDOM MỖI LẦN
+        function generateRandomId() {
+            return Array.from({length: 24}, () => 
+                Math.floor(Math.random() * 16).toString(16)
+            ).join('');
+        }
+        
+        // Hàm tạo thời gian ngẫu nhiên - RANDOM MỖI LẦN
+        function generateRandomAuthTime() {
+            const now = new Date();
+            const randomDays = Math.floor(Math.random() * 30); // 0-30 ngày
+            const randomHours = Math.floor(Math.random() * 24); // 0-23 giờ
+            const randomMinutes = Math.floor(Math.random() * 60); // 0-59 phút
+            const randomSeconds = Math.floor(Math.random() * 60); // 0-59 giây
+            
+            const randomDate = new Date(now);
+            randomDate.setDate(randomDate.getDate() - randomDays);
+            randomDate.setHours(randomHours);
+            randomDate.setMinutes(randomMinutes);
+            randomDate.setSeconds(randomSeconds);
+            randomDate.setMilliseconds(701);
+            
+            return randomDate.toISOString().replace('000Z', '701956358Z');
+        }
+        
+        // Hàm tạo CSRF token ngẫu nhiên - RANDOM MỖI LẦN
+        function generateRandomCsrf() {
+            return Math.floor(Math.random() * 10000000000000000000).toString();
+        }
+        
+        // Hàm tạo nonce ngẫu nhiên - RANDOM MỖI LẦN
+        function generateRandomNonce() {
+            const randomBytes = new Uint8Array(16);
+            crypto.getRandomValues(randomBytes);
+            return btoa(String.fromCharCode.apply(null, randomBytes)).replace(/=+$/, '');
+        }
+        
+        // Hàm tạo token ngẫu nhiên (JWT format) - RANDOM MỖI LẦN
+        function generateRandomToken() {
+            const userId = generateRandomId();
+            const authTime = generateRandomAuthTime();
+            const csrf = generateRandomCsrf();
+            const nonce = generateRandomNonce();
+            
+            const now = Math.floor(Date.now() / 1000);
+            const exp = now + 2592000; // 30 ngày
+            
+            const header = btoa(JSON.stringify({
+                "token_version": "2.0",
+                "alg": "ES256",
+                "kid": "R00000000001"
+            })).replace(/=+$/, '');
+            
+            const payload = btoa(JSON.stringify({
+                "sub": userId,
+                "rei.com/csrf": csrf,
+                "auth_time": authTime,
+                "exp": exp,
+                "iat": now,
+                "nonce": nonce
+            })).replace(/=+$/, '');
+            
+            // Tạo signature ngẫu nhiên
+            const signatureChars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_';
+            const signatureLength = 86 + Math.floor(Math.random() * 100); // 86-185 ký tự
+            const signature = Array.from({length: signatureLength}, () => 
+                signatureChars[Math.floor(Math.random() * signatureChars.length)]
+            ).join('');
+            
+            return `${header}.${payload}.${signature}`;
+        }
+        
+        // Tạo session ID ngẫu nhiên - RANDOM MỖI LẦN
+        function generateSessionId() {
+            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            const part1 = Array.from({length: 43}, () => 
+                chars[Math.floor(Math.random() * chars.length)]
+            ).join('');
+            return `${part1}-K-cofEprTo7C`;
+        }
+        
+        // Tạo JSON object theo mẫu
+        let jsonResult;
+        
+        if (isValidUser && user && password && userInfo) {
+            const userId = generateRandomId();
+            const sessionId = generateSessionId();
+            const token = generateRandomToken();
+            
+            // Tách token để lấy payload
+            const tokenParts = token.split('.');
+            let payloadData = {};
+            if (tokenParts.length > 1) {
+                try {
+                    payloadData = JSON.parse(atob(tokenParts[1]));
+                } catch (e) {
+                    // Nếu không parse được, sử dụng giá trị mặc định
+                    payloadData = {
+                        "sub": userId,
+                        "rei.com/csrf": generateRandomCsrf(),
+                        "auth_time": generateRandomAuthTime(),
+                        "exp": Math.floor(Date.now() / 1000) + 2592000,
+                        "iat": Math.floor(Date.now() / 1000),
+                        "nonce": generateRandomNonce()
+                    };
+                }
+            }
+            
+            // Lấy thông tin từ danh sách user
+            const firstName = userInfo.firstName;
+            const lastName = userInfo.lastName;
+            
+            jsonResult = {
+                "status": "success",
+                "code": 200,
+                "message": "Login successful",
+                "data": {
+                    "user": {
+                        "userId": payloadData.sub || userId,
+                        "email": user,        // user từ URL
+                        "password": password,       // password từ URL
+                        "Name": firstName,  // Từ danh sách user
+                        "accountStatus": "active"
+                    },
+                    "session": {
+                        "sessionId": sessionId,
+                        "token": token,
+                        "expiresIn": 2592000
+                    },
+                    "preferences": {
+                        "currency": "USD",
+                        "language": "en-US",
+                        "storeId": 8000
+                    }
+                },
+                "redirect": {
+                    "url": "/YourAccountInfoInView",
+                    "method": "GET"
+                }
+            };
+            
+            // Thêm thông tin REI_SSL_SESSION_ID
+            jsonResult.REI_SSL_SESSION_ID = {
+                "token_version": "2.0",
+                "alg": "ES256",
+                "kid": "R00000000001",
+                "sub": payloadData.sub || userId,
+                "rei.com/csrf": payloadData["rei.com/csrf"] || generateRandomCsrf(),
+                
+                "exp": payloadData.exp || Math.floor(Date.now() / 1000) + 2592000,
+                "iat": payloadData.iat || Math.floor(Date.now() / 1000),
+                "nonce": payloadData.nonce || generateRandomNonce()
+            };
+            
+        } else {
+            jsonResult = {
+                "status": "error",
+                "code": 200,
+                "message": message || "Authentication failed",
+                "data": null
+            };
+        }
+        
+        // Hiển thị JSON
+        document.getElementById('jsonOutput').textContent = JSON.stringify(jsonResult, null, 2);
+    </script>
+</body>
+</html>
